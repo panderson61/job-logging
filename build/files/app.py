@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 @app.before_request
 def db_connect():
-  g.conn = MySQLdb.connect(host='192.168.33.10',
+  g.conn = MySQLdb.connect(host='172.17.0.3',
                               user='test',
                               passwd='password',
                               db='test')
@@ -47,4 +47,4 @@ def add():
   return resp
 
 if __name__ == "__main__":
-  app.run()
+  app.run(host='0.0.0.0', port=5000, debug=True)
