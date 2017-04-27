@@ -2,6 +2,7 @@ from flask import Flask
 from flask import g
 from flask import Response
 from flask import request
+from flask import jsonify
 import json
 import MySQLdb
 
@@ -30,6 +31,17 @@ def query_db(query, args=(), one=False):
 @app.route("/")
 def hello():
   return "Hello World!"
+
+@app.route("/job-logging/v1/health", methods=['GET'])
+def health():
+  d = dict()
+  result = query_db("SELECT True")
+  d = result[0]
+  if 1 == d.get("TRUE"):
+    resp = Response('{"status":"Ok"}', status=200, mimetype='application/json')
+  else:
+    resp = Response('{"status":"Bad"}', status=200, mimetype='application/json')
+  return resp
 
 @app.route("/names", methods=['GET'])
 def names():
