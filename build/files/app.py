@@ -5,6 +5,7 @@ from flask import request
 from flask import jsonify
 import json
 import MySQLdb
+import datetime
 
 app = Flask(__name__)
 
@@ -59,17 +60,20 @@ def crons():
 
 @app.route("/fake", methods=['GET'])
 def fake():
-  b = []
-  a = ["115730", "2017-04-14 00:00:00", "3", "1", "http://fake-tomcat-2:8080/ContractorCronAjax.action?conID=115730&steps=All&button=Run"]
-  b.append(a)
-  a = ["125919", "2017-04-14 00:00:01", "3", "1", "http://fake-tomcat-3:8080/ContractorCronAjax.action?conID=125919&steps=All&button=Run"]
-  b.append(a)
-  a = ["100373", "2017-04-14 00:00:02", "3", "1", "http://fake-tomcat-6:8080/ContractorCronAjax.action?conID=100373&steps=All&button=Run"]
-  b.append(a)
-  a = ["56285", "2017-04-14 00:00:03", "4",  "1", "http://fake-tomcat-1:8080/ContractorCronAjax.action?conID=56285&steps=All&button=Run"]
-  b.append(a)
+  rows = []
+  timenow = datetime.datetime.now()
+  timedelta = datetime.timedelta(seconds=1)
+  a = ["115730", timenow, "3", "1", "http://fake-tomcat-2:8080/ContractorCronAjax.action?conID=115730&steps=All&button=Run"]
+  rows.append(a)
+  a = ["125919", timenow-timedelta, "3", "1", "http://fake-tomcat-3:8080/ContractorCronAjax.action?conID=125919&steps=All&button=Run"]
+  rows.append(a)
+  a = ["100373", timenow-(2*timedelta), "3", "1", "http://fake-tomcat-6:8080/ContractorCronAjax.action?conID=100373&steps=All&button=Run"]
+  rows.append(a)
+  a = ["56285", timenow-(3*timedelta), "4",  "1", "http://fake-tomcat-1:8080/ContractorCronAjax.action?conID=56285&steps=All&button=Run"]
+  rows.append(a)
+  sql = "INSERT INTO pics_live.contractor_cron_log (ConID, startDate, runTime, success, server) VALUES (%s,%s,%s,%s,%s)"
 
-  g.cursor.execute("INSERT INTO pics_live.contractor_cron_log (ConID, startDate, runTime, success, server) VALUES (%s,%s,%s,%s,%s)", (a[0], a[1], a[2], a[3], a[4]))
+  g.cursor.executemany(sql, rows)
   g.conn.commit()
   resp = Response("Updated", status=201, mimetype='application/json')
   return resp
