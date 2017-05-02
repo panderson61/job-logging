@@ -9,6 +9,16 @@ import datetime
 
 app = Flask(__name__)
 
+'''Create an encoder subclassing JSON.encoder. 
+Make this encoder aware of our classes (e.g. datetime.datetime objects) 
+'''
+class Encoder(json.JSONEncoder):
+  def default(self, obj):
+    if isinstance(obj, datetime.datetime):
+      return obj.isoformat()
+    else:
+      return json.JSONEncoder.default(self, obj)
+
 @app.before_request
 def db_connect():
   g.conn = MySQLdb.connect(host='172.17.0.3',
@@ -47,13 +57,21 @@ def health():
 @app.route("/names", methods=['GET'])
 def names():
   result = query_db("SELECT firstname,lastname FROM test.name")
-  data = json.dumps(result)
+  data = json.dumps(result, cls=Encoder)
   resp = Response(data, status=200, mimetype='application/json')
   return resp
 
 @app.route("/crons", methods=['GET'])
 def crons():
-  result = query_db("SELECT * FROM pics_live.contractor_cron_log LIMIT 10")
+  result = query_db("SELECT * FROM pics_live.contractor_cron_log ORDER BY startDate DESC LIMIT 10")
+  data = json.dumps(result, cls=Encoder)
+  resp = Response(data, status=200, mimetype='application/json')
+  return resp
+
+@app.route("/count15", methods=['GET'])
+def count15():
+  sql = "SELECT count(*) AS Count FROM pics_live.contractor_cron_log WHERE startDate >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+  result = query_db(sql);
   data = json.dumps(result)
   resp = Response(data, status=200, mimetype='application/json')
   return resp
