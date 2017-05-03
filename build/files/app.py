@@ -39,9 +39,12 @@ def query_db(query, args=(), one=False):
   for idx, value in enumerate(row)) for row in g.cursor.fetchall()]
   return (rv[0] if rv else None) if one else rv
 
-@app.route("/")
+@app.route("/hello")
 def hello():
-  return "Hello World!"
+  result = "Hello World!"
+  data = json.dumps(result)
+  resp = Response(data, status=200, mimetype='application/json')
+  return resp
 
 @app.route("/job-logging/v1/health", methods=['GET'])
 def health():
@@ -71,6 +74,15 @@ def crons():
 @app.route("/count15", methods=['GET'])
 def count15():
   sql = "SELECT count(*) AS Count FROM pics_live.contractor_cron_log WHERE startDate >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+  result = query_db(sql);
+  data = json.dumps(result)
+  resp = Response(data, status=200, mimetype='application/json')
+  return resp
+
+@app.route("/count", methods=['GET', 'POST'])
+def count():
+  age = request.args.get("age")
+  sql = "SELECT count(*) AS Count FROM pics_live.contractor_cron_log WHERE startDate >= DATE_SUB(NOW(), INTERVAL {} SECOND)".format(age)
   result = query_db(sql);
   data = json.dumps(result)
   resp = Response(data, status=200, mimetype='application/json')
