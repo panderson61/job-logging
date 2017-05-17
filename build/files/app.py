@@ -46,10 +46,27 @@ def hello():
   resp = Response(data, status=200, mimetype='application/json')
   return resp
 
+@app.route("/reqint", methods=['GET', 'POST'])
+def reqint():
+  reqint = int(request.args.get("reqint"))
+  if reqint == 0:
+    resp = Response("Parameter out of range zero {}".format(reqint), status=416)
+    return resp
+  if reqint <= 0:
+    resp = Response("Parameter out of range low {}".format(reqint), status=416)
+    return resp
+  if reqint > (24*60*60):
+    resp = Response("Parameter out of range high {}".format(reqint), status=416)
+    return resp
+  data = json.dumps(reqint)
+  resp = Response(data, status=200, mimetype='application/json')
+  return resp
+
 @app.route("/job-logging/v1/health", methods=['GET'])
 def health():
+  sql = "SELECT True"
+  result = query_db(sql)
   d = dict()
-  result = query_db("SELECT True")
   d = result[0]
   if 1 == d.get("TRUE"):
     resp = Response('{"status":"Ok"}', status=200, mimetype='application/json')
@@ -57,31 +74,20 @@ def health():
     resp = Response('{"status":"Bad"}', status=200, mimetype='application/json')
   return resp
 
-@app.route("/names", methods=['GET'])
-def names():
-  result = query_db("SELECT firstname,lastname FROM test.name")
-  data = json.dumps(result, cls=Encoder)
-  resp = Response(data, status=200, mimetype='application/json')
-  return resp
-
 @app.route("/crons", methods=['GET'])
 def crons():
-  result = query_db("SELECT * FROM pics_live.contractor_cron_log ORDER BY startDate DESC LIMIT 10")
-  data = json.dumps(result, cls=Encoder)
-  resp = Response(data, status=200, mimetype='application/json')
-  return resp
-
-@app.route("/count15", methods=['GET'])
-def count15():
-  sql = "SELECT count(*) AS Count FROM pics_live.contractor_cron_log WHERE startDate >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+  sql = "SELECT * FROM pics_live.contractor_cron_log ORDER BY startDate DESC LIMIT 10"
   result = query_db(sql);
-  data = json.dumps(result)
+  data = json.dumps(result, cls=Encoder)
   resp = Response(data, status=200, mimetype='application/json')
   return resp
 
 @app.route("/count", methods=['GET', 'POST'])
 def count():
   age = request.args.get("age")
+  if age > 24*60*60:
+    resp = Response("Parameter out of range", status=416)
+    return resp
   sql = "SELECT count(*) AS Count FROM pics_live.contractor_cron_log WHERE startDate >= DATE_SUB(NOW(), INTERVAL {} SECOND)".format(age)
   result = query_db(sql);
   data = json.dumps(result)
@@ -108,13 +114,22 @@ def fake():
   resp = Response("Updated", status=201, mimetype='application/json')
   return resp
 
-@app.route("/add", methods=['POST'])
-def add():
-  req_json = request.get_json()
-  g.cursor.execute("INSERT INTO test.name (firstname, lastname) VALUES (%s,%s)", (req_json['firstname'], req_json['lastname']))
-  g.conn.commit()
-  resp = Response("Updated", status=201, mimetype='application/json')
-  return resp
+@app.route('/messages', methods = ['POST'])
+def api_message():
+
+  if request.headers['Content-Type'] == 'text/plain':
+    return "Text Message: " + request.data
+
+  elif request.headers['Content-Type'] == 'application/json':
+    return "JSON Message: " + json.dumps(request.json)
+
+  elif request.headers['Content-Type'] == 'application/octet-stream':
+    f = open('./binary', 'wb')
+    f.write(request.data)
+    f.close()
+    return "Binary message written!"
+
+  return "415 Unsupported Media Type ;)"
 
 if __name__ == "__main__":
   app.run(host='0.0.0.0', port=5000, debug=True)
